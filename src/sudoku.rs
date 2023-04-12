@@ -7,17 +7,26 @@ pub struct Sudoku {
     dimension: usize,
     pub(crate) solutions: usize,
     pub(crate) recursion_depth: usize,
-    pub(crate) wanted_ans_num:usize
+    pub(crate) wanted_ans_num: usize,
+}
+pub trait Solver {
+    fn solver(&mut self) -> Option<Vec<Vec<usize>>>;
+    fn solve(
+        &mut self,
+        matrix: &mut Matrix,
+        partials: &mut Vec<Cell>,
+        ans: &mut Vec<Vec<Vec<usize>>>,
+    );
 }
 
 impl Sudoku {
-    pub fn new(sudoku: &str, dimension: usize,answers_wanted:usize) -> Self {
-         Self{
+    pub fn new(sudoku: &str, dimension: usize, answers_wanted: usize) -> Self {
+        Self {
             sudoku: sudoku.to_owned(),
             dimension: dimension,
             solutions: 0usize,
             recursion_depth: 0usize,
-            wanted_ans_num:answers_wanted,
+            wanted_ans_num: answers_wanted,
         }
     }
     fn small_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
@@ -31,7 +40,7 @@ impl Sudoku {
                     sparse.push(individual);
                 }
             } else {
-                let temp = self.build_one_row(ind, (val_dig as usize));
+                let temp = self.build_one_row(ind, val_dig as usize);
 
                 let tempp: Vec<usize> = temp.into_iter().flatten().collect();
                 sparse.push(tempp);
@@ -137,76 +146,6 @@ impl Sudoku {
         result
     }
 
-    pub fn solver(&mut self) -> Option<Vec<Vec<usize>>> {
-        let length = self.sudoku.len() as f64;
-
-        let sparse = self.sudoku_to_sparse();
-
-        let possibility = self.dimension * self.dimension;
-        let rows = possibility * possibility * possibility;
-        let cols = possibility * possibility * 4;
-        let mut matrix = Matrix::new(rows, cols);
-
-        for (i, x) in sparse.iter().enumerate() {
-            // println!("this is row#{}: {:?}",i, x);
-            matrix.add_row(&x);
-        }
-        let mut partial_ans = Vec::new();
-        let mut answers = Vec::new();
-        self.solve(&mut matrix, &mut partial_ans, &mut answers);
-        if answers.len() == 0 {
-            println!("no answers");
-            return None;
-        }
-        let result: Vec<Vec<usize>> = self.ans_to_sudoku_ans(&answers, (length as usize));
-        return Some(result);
-    }
-    fn solve(
-        &mut self,
-        matrix: &mut Matrix,
-        partials: &mut Vec<Cell>,
-        ans: &mut Vec<Vec<Vec<usize>>>,
-    ) {
-        //println!("recursion depth: {}", self.recursion_depth);
-        self.recursion_depth +=1;
-        //check if matrix is empty
-        let mut curr = matrix.horizontal.cursor(CERO);
-        if curr.next(&matrix.horizontal) == None {
-            let answer = partials
-                .iter()
-                .map(|cell| matrix.get_row(*cell))
-                .collect::<Vec<Vec<usize>>>();
-            ans.push(answer);
-            self.solutions += 1;
-            return;
-        }
-        if self.wanted_ans_num <=ans.len() {
-            return;
-            
-        }
-        // println!("covered: {:?}",matrix.covered);
-        // println!("partials: {:?}", partials);
-        // println!("sizes : {:?}", matrix.sizes);
-        //find the column with the lowest amount of 1s
-
-        let mut col = matrix.get_smallest();
-        // println!("cell: {:?} covered",col);
-        matrix.cover(col);
-        let mut curr = matrix.vertical.cursor(col);
-        while let Some(curr) = curr.next(&matrix.vertical) {
-            partials.push(curr);
-            // println!("first cell of row to cover: {:?} cell in col:{:?} ",curr,matrix.access[curr]);
-            matrix.cover_all_row(curr);
-            // println!("total nodes covered {}",matrix.total_covered);
-            self.solve(matrix, partials, ans);
-            matrix.uncover_all_row(curr);
-            partials.pop();
-        }
-        matrix.uncover(col);
-        //println!(" total uncover ops: {}",matrix.total_uncovered);
-        // println!("total operations: {}",matrix.total_covered+matrix.total_uncovered);
-    }
-
     fn decoder(&self, row: &Vec<usize>) -> (usize, usize) {
         let possibilities = self.dimension * self.dimension;
         let cell = row[0];
@@ -247,5 +186,75 @@ impl Sudoku {
         let duration = end.duration_since(start).unwrap();
         println!("execution time in milliseconds: {}", duration.as_millis());
         res
+    }
+}
+impl Solver for Sudoku {
+    fn solver(&mut self) -> Option<Vec<Vec<usize>>> {
+        let length = self.sudoku.len() as f64;
+
+        let sparse = self.sudoku_to_sparse();
+
+        let possibility = self.dimension * self.dimension;
+        let rows = possibility * possibility * possibility;
+        let cols = possibility * possibility * 4;
+        let mut matrix = Matrix::new(rows, cols);
+
+        for (i, x) in sparse.iter().enumerate() {
+            // println!("this is row#{}: {:?}",i, x);
+            matrix.add_row(&x);
+        }
+        let mut partial_ans = Vec::new();
+        let mut answers = Vec::new();
+        self.solve(&mut matrix, &mut partial_ans, &mut answers);
+        if answers.len() == 0 {
+            println!("no answers");
+            return None;
+        }
+        let result: Vec<Vec<usize>> = self.ans_to_sudoku_ans(&answers, length as usize);
+        return Some(result);
+    }
+    fn solve(
+        &mut self,
+        matrix: &mut Matrix,
+        partials: &mut Vec<Cell>,
+        ans: &mut Vec<Vec<Vec<usize>>>,
+    ) {
+        //println!("recursion depth: {}", self.recursion_depth);
+        self.recursion_depth += 1;
+        //check if matrix is empty
+        let mut curr = matrix.horizontal.cursor(CERO);
+        if curr.next(&matrix.horizontal) == None {
+            let answer = partials
+                .iter()
+                .map(|cell| matrix.get_row(*cell))
+                .collect::<Vec<Vec<usize>>>();
+            ans.push(answer);
+            self.solutions += 1;
+            return;
+        }
+        if self.wanted_ans_num <= ans.len() {
+            return
+        }
+        // println!("covered: {:?}",matrix.covered);
+        // println!("partials: {:?}", partials);
+        // println!("sizes : {:?}", matrix.sizes);
+        //find the column with the lowest amount of 1s
+
+        let col = matrix.get_smallest();
+        // println!("cell: {:?} covered",col);
+        matrix.cover(col);
+        let mut curr = matrix.vertical.cursor(col);
+        while let Some(curr) = curr.next(&matrix.vertical) {
+            partials.push(curr);
+            // println!("first cell of row to cover: {:?} cell in col:{:?} ",curr,matrix.access[curr]);
+            matrix.cover_all_row(curr);
+            // println!("total nodes covered {}",matrix.total_covered);
+            self.solve(matrix, partials, ans);
+            matrix.uncover_all_row(curr);
+            partials.pop();
+        }
+        matrix.uncover(col);
+        //println!(" total uncover ops: {}",matrix.total_uncovered);
+        // println!("total operations: {}",matrix.total_covered+matrix.total_uncovered);
     }
 }

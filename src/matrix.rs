@@ -1,8 +1,6 @@
-use rand::{thread_rng,Rng};
+use rand::Rng;
 use crate::cells::Cell;
 use crate::cells::CERO;
-use crate::cursor;
-use crate::cursor::Cursor;
 use crate::linked::Linked;
 
 pub struct Matrix {
@@ -20,12 +18,8 @@ pub struct Matrix {
 impl Matrix {
     pub fn new(rows: usize, cols: usize) -> Matrix {
         let mut matrix = Matrix {
-            horizontal: crate::linked::Linked {
-                links: Vec::with_capacity(cols + 1),
-            },
-            vertical: crate::linked::Linked {
-                links: Vec::with_capacity(rows + 1),
-            },
+            horizontal: Linked::new_with_cap(cols+1),
+            vertical:  Linked::new_with_cap(rows+1),
             sizes: Vec::new(),
             access: Vec::with_capacity(cols + 1),
             covered: Vec::new(),
