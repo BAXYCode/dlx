@@ -2,7 +2,7 @@ use crate::matrix::Matrix;
 use crate::cells::Cell;
 
 pub trait Solver {
-    fn solver(&mut self) -> Option<Vec<Vec<usize>>>;
+    fn solver(&mut self, wanted_ans: Option<usize>) -> Option<Vec<Vec<usize>>>;
     fn solve(
         &mut self,
         matrix: &mut Matrix,

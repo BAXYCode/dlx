@@ -1,4 +1,5 @@
-use std::{any::type_name, time::SystemTime};
+use std::time::SystemTime;
+use crate::solver::Solver;
 
 use crate::{cells::Cell, cells::CERO, matrix::Matrix};
 
@@ -7,26 +8,20 @@ pub struct Sudoku {
     dimension: usize,
     pub(crate) solutions: usize,
     pub(crate) recursion_depth: usize,
-    pub(crate) wanted_ans_num: usize,
+    pub(crate) wanted_ans_num:WantedSolutions ,
 }
-pub trait Solver {
-    fn solver(&mut self) -> Option<Vec<Vec<usize>>>;
-    fn solve(
-        &mut self,
-        matrix: &mut Matrix,
-        partials: &mut Vec<Cell>,
-        ans: &mut Vec<Vec<Vec<usize>>>,
-    );
+pub(crate) enum WantedSolutions {
+    MaxWanted( usize),
+    None
 }
-
 impl Sudoku {
-    pub fn new(sudoku: &str, dimension: usize, answers_wanted: usize) -> Self {
+    pub fn new(sudoku: &str, dimension: usize) -> Self {
         Self {
             sudoku: sudoku.to_owned(),
             dimension: dimension,
             solutions: 0usize,
             recursion_depth: 0usize,
-            wanted_ans_num: answers_wanted,
+            wanted_ans_num:WantedSolutions::None,
         }
     }
     fn small_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
@@ -189,11 +184,11 @@ impl Sudoku {
     }
 }
 impl Solver for Sudoku {
-    fn solver(&mut self) -> Option<Vec<Vec<usize>>> {
+    fn solver(&mut self, answers_wanted: Option<usize>) -> Option<Vec<Vec<usize>>> {
         let length = self.sudoku.len() as f64;
 
         let sparse = self.sudoku_to_sparse();
-
+        
         let possibility = self.dimension * self.dimension;
         let rows = possibility * possibility * possibility;
         let cols = possibility * possibility * 4;
@@ -203,6 +198,9 @@ impl Solver for Sudoku {
             // println!("this is row#{}: {:?}",i, x);
             matrix.add_row(&x);
         }
+        if let Some(val) = answers_wanted{
+            self.wanted_ans_num = WantedSolutions::MaxWanted(val);}
+
         let mut partial_ans = Vec::new();
         let mut answers = Vec::new();
         self.solve(&mut matrix, &mut partial_ans, &mut answers);
@@ -232,8 +230,10 @@ impl Solver for Sudoku {
             self.solutions += 1;
             return;
         }
-        if self.wanted_ans_num <= ans.len() {
-            return
+        if let WantedSolutions::MaxWanted(val) = self.wanted_ans_num{
+            if val<ans.len(){
+                return
+            }
         }
         // println!("covered: {:?}",matrix.covered);
         // println!("partials: {:?}", partials);
