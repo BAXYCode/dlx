@@ -2,7 +2,7 @@ use rand::Rng;
 use crate::cells::Cell;
 use crate::cells::CERO;
 use crate::linked::Linked;
-
+use crate::utils;
 pub struct Matrix {
     pub(crate) horizontal: Linked,
     pub(crate) vertical: Linked,

@@ -1,18 +1,20 @@
-use std::time::SystemTime;
 use crate::solver::Solver;
+use std::time::SystemTime;
 
 use crate::{cells::Cell, cells::CERO, matrix::Matrix};
+    
 
+const HARD_CODED_MAX: usize =100_000;
 pub struct Sudoku {
     sudoku: String,
     dimension: usize,
     pub(crate) solutions: usize,
     pub(crate) recursion_depth: usize,
-    pub(crate) wanted_ans_num:WantedSolutions ,
+    pub(crate) wanted_ans_num: WantedSolutions,
 }
 pub(crate) enum WantedSolutions {
-    MaxWanted( usize),
-    None
+    MaxWanted(usize),
+    None,
 }
 impl Sudoku {
     pub fn new(sudoku: &str, dimension: usize) -> Self {
@@ -21,7 +23,7 @@ impl Sudoku {
             dimension: dimension,
             solutions: 0usize,
             recursion_depth: 0usize,
-            wanted_ans_num:WantedSolutions::None,
+            wanted_ans_num: WantedSolutions::None,
         }
     }
     fn small_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
@@ -57,7 +59,7 @@ impl Sudoku {
                     sparse.push(row);
                 }
             } else {
-                let mut temp = self.build_one_row(ind, *val);
+                let temp = self.build_one_row(ind, *val);
                 let tempp: Vec<usize> = temp.into_iter().flatten().collect();
                 sparse.push(tempp)
             }
@@ -96,7 +98,7 @@ impl Sudoku {
         //(let's say we have the first block of 81 columns represent the row
         //constraint, index 56 would mean that our possibility is located
         //in the 7th row)
-        let mut col = ind % (n);
+        let col = ind % (n);
         let row = ind.div_floor(n);
         let box_con = (row - (row % self.dimension)) + (col.div_floor(self.dimension));
         //-----------------------------------------------------------------------------
@@ -131,7 +133,7 @@ impl Sudoku {
         let mut result = Vec::new();
 
         for i in 1..=dim {
-            let mut temp: Vec<usize> = self
+            let temp: Vec<usize> = self
                 .build_one_row(cell_num, i)
                 .into_iter()
                 .flatten()
@@ -173,10 +175,11 @@ impl Sudoku {
     }
     pub(crate) fn time_to_solve(
         &mut self,
-        f: fn(&mut Sudoku) -> Option<Vec<Vec<usize>>>,
+        f: fn(&mut Sudoku,Option<usize>) -> Option<Vec<Vec<usize>>>,
+        ans_wanted:Option<usize>
     ) -> Option<Vec<Vec<usize>>> {
         let start = SystemTime::now();
-        let res = f(self);
+        let res = f(self,ans_wanted);
         let end = SystemTime::now();
         let duration = end.duration_since(start).unwrap();
         println!("execution time in milliseconds: {}", duration.as_millis());
@@ -188,18 +191,19 @@ impl Solver for Sudoku {
         let length = self.sudoku.len() as f64;
 
         let sparse = self.sudoku_to_sparse();
-        
+
         let possibility = self.dimension * self.dimension;
         let rows = possibility * possibility * possibility;
         let cols = possibility * possibility * 4;
         let mut matrix = Matrix::new(rows, cols);
 
-        for (i, x) in sparse.iter().enumerate() {
+        for x in sparse.iter() {
             // println!("this is row#{}: {:?}",i, x);
             matrix.add_row(&x);
         }
-        if let Some(val) = answers_wanted{
-            self.wanted_ans_num = WantedSolutions::MaxWanted(val);}
+        if let Some(val) = answers_wanted {
+            self.wanted_ans_num = WantedSolutions::MaxWanted(val);
+        }
 
         let mut partial_ans = Vec::new();
         let mut answers = Vec::new();
@@ -230,11 +234,13 @@ impl Solver for Sudoku {
             self.solutions += 1;
             return;
         }
-        if let WantedSolutions::MaxWanted(val) = self.wanted_ans_num{
-            if val<ans.len(){
+        if let WantedSolutions::MaxWanted(val) = self.wanted_ans_num {
+            if val < self.solutions {
                 return
             }
         }
+        if self.solutions >HARD_CODED_MAX{
+            return}
         // println!("covered: {:?}",matrix.covered);
         // println!("partials: {:?}", partials);
         // println!("sizes : {:?}", matrix.sizes);
