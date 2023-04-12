@@ -4,7 +4,7 @@
 #![feature(int_roundings)]
 use rand::{thread_rng,Rng};
 use solver::Solver;
-use std::io;
+use std::{io,env};
 mod cursor;
 mod solver;
 mod linked;
@@ -14,7 +14,7 @@ mod sudoku;
 mod sudoku_gen;
 mod utils;
 use crate::sudoku::{Sudoku};
-use std::env;
+use crate::sudoku_gen::SudokuGenerator;
 
 fn main(){
     env::set_var("RUST_BACKTRACE", "1");
@@ -29,11 +29,12 @@ fn main(){
         res = sudoku_problem.time_to_solve(Sudoku::solver, None);}
     if let Some(res) = res{
         println!("found {} solutions to the problem",sudoku_problem.solutions);
-        let index = thread_rng().gen_range(1..res.len());    
+        let index = thread_rng().gen_range(0..res.len());    
         //for x in 0..sudoku_problem.solutions{
             //if x >10{break;}
             println!("{:?}",res[index]);
      // }
     }
+    println!("sovlvable {:?}", SudokuGenerator::new(split[1].parse::<usize>().unwrap()).generate_solvable());
 }
   

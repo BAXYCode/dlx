@@ -6,7 +6,7 @@ use crate::{cells::Cell, cells::CERO, matrix::Matrix};
 
 const HARD_CODED_MAX: usize =100_000;
 pub struct Sudoku {
-    sudoku: String,
+    pub(crate) sudoku: String,
     dimension: usize,
     pub(crate) solutions: usize,
     pub(crate) recursion_depth: usize,
@@ -64,6 +64,10 @@ impl Sudoku {
                 sparse.push(tempp)
             }
         }
+    }
+    pub fn set_new_sudoku(&mut self, sudoku:String){
+        self.solutions =0usize;
+        self.sudoku =sudoku;
     }
     fn sudoku_to_sparse(&self) -> Vec<Vec<usize>> {
         let mut sparse: Vec<Vec<usize>> = Vec::new();
