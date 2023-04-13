@@ -14,14 +14,13 @@ mod sudoku;
 mod sudoku_gen;
 mod utils;
 use crate::sudoku::{Sudoku};
-use crate::sudoku_gen::SudokuGenerator;
 
 fn main(){
     env::set_var("RUST_BACKTRACE", "1");
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("give valid sudoku");
     let split :Vec<&str> = input.split_whitespace().collect();
-    let mut sudoku_problem = Sudoku::new(split[0],split[1].parse::<usize>().unwrap());
+    let mut sudoku_problem = Sudoku::new(split[0].to_owned(),split[1].parse::<usize>().unwrap());
     let mut res: Option<Vec<Vec<usize>>> =None ;
         if split.len()>2{
             res = sudoku_problem.time_to_solve(Sudoku::solver,Some(split[2].parse::<usize>().unwrap()));}
@@ -35,6 +34,20 @@ fn main(){
             println!("{:?}",res[index]);
      // }
     }
-    println!("sovlvable {:?}", SudokuGenerator::new(split[1].parse::<usize>().unwrap()).generate_solvable());
+    
 }
+
+fn get_sudoku(sudokus: &str) -> Vec<String>{
+
+    let sudokus_vec: Vec<String> = { 
+        let untreated = sudokus.split("\n");
+        let mut treated:Vec<String> = Vec::new();
+        for each in untreated{
+            treated.push(each.to_owned().trim_end().to_owned());
+        }
+        treated
+    };
+    sudokus_vec
+}
+
   

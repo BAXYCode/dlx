@@ -1,6 +1,6 @@
 use crate::solver::Solver;
 use std::time::SystemTime;
-
+use crate::sudoku_gen::SudokuGenerator;
 use crate::{cells::Cell, cells::CERO, matrix::Matrix};
     
 
@@ -17,9 +17,9 @@ pub(crate) enum WantedSolutions {
     None,
 }
 impl Sudoku {
-    pub fn new(sudoku: &str, dimension: usize) -> Self {
+    pub fn new(sudoku: String, dimension: usize) -> Self {
         Self {
-            sudoku: sudoku.to_owned(),
+            sudoku: sudoku,
             dimension: dimension,
             solutions: 0usize,
             recursion_depth: 0usize,
@@ -65,9 +65,9 @@ impl Sudoku {
             }
         }
     }
-    pub fn set_new_sudoku(&mut self, sudoku:String){
+    pub fn set_new_sudoku(&mut self, sudoku: &str){
         self.solutions =0usize;
-        self.sudoku =sudoku;
+        self.sudoku =sudoku.to_owned();
     }
     fn sudoku_to_sparse(&self) -> Vec<Vec<usize>> {
         let mut sparse: Vec<Vec<usize>> = Vec::new();
@@ -76,7 +76,6 @@ impl Sudoku {
         } else {
             self.big_sudoku(&mut sparse);
         }
-        println!("sparse: {:?}", sparse.len());
         sparse
     }
 
@@ -184,9 +183,11 @@ impl Sudoku {
     ) -> Option<Vec<Vec<usize>>> {
         let start = SystemTime::now();
         let res = f(self,ans_wanted);
+
+        println!("sovlvable {}", SudokuGenerator::new(3usize).generate_solvable());
         let end = SystemTime::now();
         let duration = end.duration_since(start).unwrap();
-        println!("execution time in milliseconds: {}", duration.as_millis());
+        println!("execution time in microseconds: {}", duration.as_micros());
         res
     }
 }
