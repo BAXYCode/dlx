@@ -13,6 +13,7 @@ mod matrix;
 mod sudoku;
 mod sudoku_gen;
 mod utils;
+mod sudoku_tester;
 use crate::sudoku::{Sudoku};
 
 fn main(){
@@ -37,17 +38,6 @@ fn main(){
     
 }
 
-fn get_sudoku(sudokus: &str) -> Vec<String>{
 
-    let sudokus_vec: Vec<String> = { 
-        let untreated = sudokus.split("\n");
-        let mut treated:Vec<String> = Vec::new();
-        for each in untreated{
-            treated.push(each.to_owned().trim_end().to_owned());
-        }
-        treated
-    };
-    sudokus_vec
-}
 
   

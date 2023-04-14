@@ -7,7 +7,7 @@ use crate::{cells::Cell, cells::CERO, matrix::Matrix};
 const HARD_CODED_MAX: usize =100_000;
 pub struct Sudoku {
     pub(crate) sudoku: String,
-    dimension: usize,
+    pub(crate) dimension: usize,
     pub(crate) solutions: usize,
     pub(crate) recursion_depth: usize,
     pub(crate) wanted_ans_num: WantedSolutions,
