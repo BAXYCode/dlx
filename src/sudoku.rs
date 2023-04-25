@@ -1,8 +1,8 @@
 use crate::solver::Solver;
 use crate::sudoku_gen::SudokuGenerator;
 use crate::{cells::Cell, cells::CERO, matrix::Matrix};
-use std::time::{SystemTime, Instant};
-
+use std::time::{Instant, SystemTime};
+use radsort::sort_by_key;
 const HARD_CODED_MAX: usize = 100_000;
 pub struct Sudoku {
     pub(crate) sudoku: String,
@@ -11,20 +11,23 @@ pub struct Sudoku {
     pub(crate) recursion_depth: usize,
     pub(crate) wanted_ans_num: WantedSolutions,
 }
+
 pub(crate) enum WantedSolutions {
     MaxWanted(usize),
     None,
 }
+
 impl Sudoku {
     pub fn new(sudoku: String, dimension: usize) -> Self {
         Self {
-            sudoku: sudoku,
-            dimension: dimension,
+            sudoku,
+            dimension,
             solutions: 0usize,
             recursion_depth: 0usize,
             wanted_ans_num: WantedSolutions::None,
         }
     }
+
     fn small_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
         let n = self.dimension * self.dimension;
         for (ind, mut val) in self.sudoku.char_indices() {
@@ -49,11 +52,10 @@ impl Sudoku {
     fn big_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
         let n = self.dimension * self.dimension;
         let sudoku_split: Vec<&str> = self.sudoku.split(".").collect();
-        let mut sudoku_vec = Vec::new();
-        sudoku_split
-            .iter()
-            .map(|v| sudoku_vec.push(v.parse::<usize>().unwrap()))
-            .count();
+        let mut sudoku_vec = Vec::with_capacity(n*n);
+        for x in sudoku_split{
+            sudoku_vec.push(x.parse::<usize>().unwrap());
+        }
         for (ind, val) in sudoku_vec.iter().enumerate() {
             if *val == 0usize {
                 let mut temp = self.build_n_rows(n, ind);
@@ -61,12 +63,11 @@ impl Sudoku {
                     sparse.push(row);
                 }
             } else {
-                 let row = self.build_one_row(ind, *val);
-                let mut temp: Vec<usize> = Vec::with_capacity(row[0].len()*4);
+                let row = self.build_one_row(ind, *val);
+                let mut temp: Vec<usize> = Vec::with_capacity(row[0].len() * 4);
                 let flat_row = row.into_iter().flatten();
                 temp.extend(flat_row);
                 sparse.push(temp)
-
             }
         }
     }
@@ -142,7 +143,7 @@ impl Sudoku {
 
         for i in 1..=dim {
             let row = self.build_one_row(cell_num, i);
-            let mut temp: Vec<usize> = Vec::with_capacity(row[0].len()*4);
+            let mut temp: Vec<usize> = Vec::with_capacity(row[0].len() * 4);
             let flat_row = row.into_iter().flatten();
             temp.extend(flat_row);
             result.push(temp);
@@ -163,28 +164,28 @@ impl Sudoku {
         };
         (cell, value)
     }
-    fn ans_to_sudoku_ans(&self, answers: &Vec<Vec<Vec<usize>>>, length: usize) -> Vec<Vec<usize>> {
-        let mut sudokus: Vec<Vec<usize>> = Vec::new();
+    fn ans_to_sudoku_ans(&self, answers: &Vec<Vec<Vec<usize>>>, length: usize) -> Vec<String> {
+        let mut sudokus: Vec<String> = Vec::new();
         for answer in answers {
-            let mut sudoku = vec![0usize; length];
-            let decoded: Vec<(usize, usize)> = answer
+            let mut sudoku = String::new();
+            let mut decoded: Vec<(usize, usize)> = answer
                 .into_iter()
                 .map(|row| self.decoder(row))
                 .collect::<Vec<(usize, usize)>>();
-
-            decoded
-                .into_iter()
-                .map(|info| sudoku[(info.0) - 1] = info.1)
-                .count();
+            radsort::sort_by_key(&mut decoded, |vals| vals.0);
+            for (i,x) in decoded.into_iter().enumerate(){
+                
+                sudoku.insert(i,char::from_digit(x.1 as u32,10).unwrap());
+            }
             sudokus.push(sudoku);
         }
         sudokus
     }
     pub(crate) fn time_to_solve(
         &mut self,
-        f: fn(&mut Sudoku, Option<usize>) -> Option<Vec<Vec<usize>>>,
+        f: fn(&mut Sudoku, Option<usize>) -> Option<Vec<String>>,
         ans_wanted: Option<usize>,
-    ) -> Option<Vec<Vec<usize>>> {
+    ) -> Option<Vec<String>> {
         let start = SystemTime::now();
         let res = f(self, ans_wanted);
 
@@ -199,7 +200,7 @@ impl Sudoku {
     }
 }
 impl Solver for Sudoku {
-    fn solver(&mut self, answers_wanted: Option<usize>) -> Option<Vec<Vec<usize>>> {
+    fn solver(&mut self, answers_wanted: Option<usize>) -> Option<Vec<String>> {
         let length = self.sudoku.len() as f64;
 
         let sparse = self.sudoku_to_sparse();
@@ -224,7 +225,7 @@ impl Solver for Sudoku {
             println!("no answers");
             return None;
         }
-        let result: Vec<Vec<usize>> = self.ans_to_sudoku_ans(&answers, length as usize);
+        let result: Vec<String> = self.ans_to_sudoku_ans(&answers, length as usize);
         return Some(result);
     }
     fn solve(

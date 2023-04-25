@@ -1,9 +1,10 @@
 use std::fs::File;
 use std::io::{BufReader,Read};
 use std::path::Path;
+use std::thread::{JoinHandle, self};
 use crate::solver::Solver;
 use crate::sudoku::{Sudoku,WantedSolutions};
-use crate::utils;
+use std::sync::{Arc,Mutex};
 pub(crate)  struct  SudokuTester{
     pub response: Vec<String>
 }
@@ -33,23 +34,36 @@ impl SudokuTester {
             }
 
     pub(crate)fn  test_performance(&mut self){
-        let mut result: Vec<String> = Vec::new();
-        let mut treated = self.treat_file();
-        let mut unsolved = self.get_sudoku(&treated);
+        let mut results: Vec<String> = Vec::new();
+        let treated = self.treat_file();
+        let unsolved = self.get_sudoku(&treated);
         let total = unsolved.len() as f32;
-        let mut sudoku_struct = Sudoku{sudoku:"".to_owned(),dimension:3usize,solutions:0usize,recursion_depth:0usize,wanted_ans_num: WantedSolutions::None,} ;
-        for (i ,sudoku) in unsolved.iter().enumerate(){
-            if (i+1)%1000 == 0{
-                println!("solved: {}, completed percentage: {}%",i+1,((i+1) as f32)/total*100f32);
+        let mut handles: Vec<JoinHandle<_>> = Vec::with_capacity(1000); 
+        for (i ,sud) in unsolved.into_iter().enumerate(){
+            let mut sudoku = Sudoku::new(sud,3usize);
+            if (i+1)%5000 == 0{
+                for handle in handles{
+                    let answer = handle.join().unwrap();
+                    results.push(answer);
+                }
+                handles = Vec::new();
             }
-            sudoku_struct.set_new_sudoku(&sudoku);
-            let solved = sudoku_struct.solver(None);
-            if let Some(solved) = solved{
-                let solved_str = utils::vec_to_sudoku_string(&solved[0]);
-                result.push(solved_str);
-            }
-        }
-        self.response = result;
+
+            let handle = thread::spawn(move || -> String{ 
+                let answer = sudoku.solver(None);
+                if let Some(answer) = answer{ 
+                    return answer[0].clone();
+                }
+                return "".to_owned()
+            });
+            handles.push(handle);
+            } 
+        for handle in handles{
+                    let answer = handle.join().unwrap();
+                    results.push(answer);
+                }
+        
+        self.response = results;
     }
          
             

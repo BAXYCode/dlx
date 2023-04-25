@@ -26,7 +26,7 @@ impl SudokuGenerator {
             dimension: size,
         }
     }
-    pub fn generate(&mut self) -> Option<Vec<Vec<usize>>> {
+    pub fn generate(&mut self) -> Option<Vec<String>> {
         let sudokus = self.blank.solver(None);
         if let Some(sudokus) = sudokus {
             return Some(sudokus);

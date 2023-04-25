@@ -27,7 +27,7 @@ fn main(){
     let duration = start.elapsed();
     println!("time elapsed: {:?}",duration);
     
-    println!("puzzles solved{:?}", _test.response.len());
+    println!("puzzles solved {:?}", _test.response.len());
 
    
 }
@@ -39,7 +39,7 @@ fn public(){    env::set_var("RUST_BACKTRACE", "1");
     io::stdin().read_line(&mut input).expect("give valid sudoku");
     let split :Vec<&str> = input.split_whitespace().collect();
     let mut sudoku_problem = Sudoku::new(split[0].to_owned(),split[1].parse::<usize>().unwrap());
-    let mut res: Option<Vec<Vec<usize>>> =None ;
+    let mut res: Option<Vec<String>> =None ;
         if split.len()>2{
             res = sudoku_problem.time_to_solve(Sudoku::solver,Some(split[2].parse::<usize>().unwrap()));}
     else{
