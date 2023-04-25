@@ -4,7 +4,8 @@
 #![feature(int_roundings)]
 use rand::{thread_rng,Rng};
 use solver::Solver;
-use std::{io,env};
+use sudoku_tester::SudokuTester;
+use std::{io,env, time::{SystemTime, Instant}};
 mod cursor;
 mod solver;
 mod linked;
@@ -16,8 +17,24 @@ mod utils;
 mod sudoku_tester;
 use crate::sudoku::{Sudoku};
 
-fn main(){
-    env::set_var("RUST_BACKTRACE", "1");
+fn main(){       
+     let start = Instant::now();
+
+    let mut _test = SudokuTester{response: Vec::new()};
+
+    _test.test_performance();
+   
+    let duration = start.elapsed();
+    println!("time elapsed: {:?}",duration);
+    
+    println!("puzzles solved{:?}", _test.response.len());
+
+   
+}
+
+
+
+fn public(){    env::set_var("RUST_BACKTRACE", "1");
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("give valid sudoku");
     let split :Vec<&str> = input.split_whitespace().collect();
@@ -35,9 +52,4 @@ fn main(){
             println!("{:?}",res[index]);
      // }
     }
-    
-}
-
-
-
-  
+} 

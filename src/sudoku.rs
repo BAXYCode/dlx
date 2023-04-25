@@ -1,10 +1,9 @@
 use crate::solver::Solver;
-use std::time::SystemTime;
 use crate::sudoku_gen::SudokuGenerator;
 use crate::{cells::Cell, cells::CERO, matrix::Matrix};
-    
+use std::time::{SystemTime, Instant};
 
-const HARD_CODED_MAX: usize =100_000;
+const HARD_CODED_MAX: usize = 100_000;
 pub struct Sudoku {
     pub(crate) sudoku: String,
     pub(crate) dimension: usize,
@@ -28,7 +27,10 @@ impl Sudoku {
     }
     fn small_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
         let n = self.dimension * self.dimension;
-        for (ind, val) in self.sudoku.char_indices() {
+        for (ind, mut val) in self.sudoku.char_indices() {
+            if val == '.' {
+                val = '0';
+            }
             let val_copy = val.clone();
             let val_dig = val_copy.to_digit(10u32).unwrap();
             if (val.to_digit(10u32).unwrap() as usize) == 0usize {
@@ -59,15 +61,18 @@ impl Sudoku {
                     sparse.push(row);
                 }
             } else {
-                let temp = self.build_one_row(ind, *val);
-                let tempp: Vec<usize> = temp.into_iter().flatten().collect();
-                sparse.push(tempp)
+                 let row = self.build_one_row(ind, *val);
+                let mut temp: Vec<usize> = Vec::with_capacity(row[0].len()*4);
+                let flat_row = row.into_iter().flatten();
+                temp.extend(flat_row);
+                sparse.push(temp)
+
             }
         }
     }
-    pub fn set_new_sudoku(&mut self, sudoku: &str){
-        self.solutions =0usize;
-        self.sudoku =sudoku.to_owned();
+    pub fn set_new_sudoku(&mut self, sudoku: &str) {
+        self.solutions = 0usize;
+        self.sudoku = sudoku.to_owned();
     }
     fn sudoku_to_sparse(&self) -> Vec<Vec<usize>> {
         let mut sparse: Vec<Vec<usize>> = Vec::new();
@@ -136,11 +141,10 @@ impl Sudoku {
         let mut result = Vec::new();
 
         for i in 1..=dim {
-            let temp: Vec<usize> = self
-                .build_one_row(cell_num, i)
-                .into_iter()
-                .flatten()
-                .collect();
+            let row = self.build_one_row(cell_num, i);
+            let mut temp: Vec<usize> = Vec::with_capacity(row[0].len()*4);
+            let flat_row = row.into_iter().flatten();
+            temp.extend(flat_row);
             result.push(temp);
         }
         result
@@ -178,13 +182,16 @@ impl Sudoku {
     }
     pub(crate) fn time_to_solve(
         &mut self,
-        f: fn(&mut Sudoku,Option<usize>) -> Option<Vec<Vec<usize>>>,
-        ans_wanted:Option<usize>
+        f: fn(&mut Sudoku, Option<usize>) -> Option<Vec<Vec<usize>>>,
+        ans_wanted: Option<usize>,
     ) -> Option<Vec<Vec<usize>>> {
         let start = SystemTime::now();
-        let res = f(self,ans_wanted);
+        let res = f(self, ans_wanted);
 
-        println!("sovlvable {}", SudokuGenerator::new(3usize).generate_solvable());
+        println!(
+            "sovlvable {}",
+            SudokuGenerator::new(3usize).generate_solvable()
+        );
         let end = SystemTime::now();
         let duration = end.duration_since(start).unwrap();
         println!("execution time in microseconds: {}", duration.as_micros());
@@ -241,11 +248,12 @@ impl Solver for Sudoku {
         }
         if let WantedSolutions::MaxWanted(val) = self.wanted_ans_num {
             if val < self.solutions {
-                return
+                return;
             }
         }
-        if self.solutions >HARD_CODED_MAX{
-            return}
+        if self.solutions > HARD_CODED_MAX {
+            return;
+        }
         // println!("covered: {:?}",matrix.covered);
         // println!("partials: {:?}", partials);
         // println!("sizes : {:?}", matrix.sizes);
