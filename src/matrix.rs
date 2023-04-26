@@ -107,7 +107,8 @@ impl Matrix {
     pub(crate) fn cover_all_row(&mut self, col: Cell) {
         let mut cursor = self.vertical.cursor(col);
         while let Some(cell) = cursor.next(&self.horizontal) {
-            let header = self.access[cell];
+            let header:Cell;
+            unsafe { header = *(self.access.get_unchecked(cell.0));}
             self.cover(header);
         }
     }
