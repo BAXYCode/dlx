@@ -34,12 +34,12 @@ fn main(){
 
 
 
-fn public(){    env::set_var("RUST_BACKTRACE", "1");
+fn djfkh(){    env::set_var("RUST_BACKTRACE", "1");
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("give valid sudoku");
     let split :Vec<&str> = input.split_whitespace().collect();
     let mut sudoku_problem = Sudoku::new(split[0].to_owned(),split[1].parse::<usize>().unwrap());
-    let mut res: Option<Vec<String>> =None ;
+    let res: Option<Vec<String>> ;
         if split.len()>2{
             res = sudoku_problem.time_to_solve(Sudoku::solver,Some(split[2].parse::<usize>().unwrap()));}
     else{
@@ -47,9 +47,6 @@ fn public(){    env::set_var("RUST_BACKTRACE", "1");
     if let Some(res) = res{
         println!("found {} solutions to the problem",sudoku_problem.solutions);
         let index = thread_rng().gen_range(0..res.len());    
-        //for x in 0..sudoku_problem.solutions{
-            //if x >10{break;}
             println!("{:?}",res[index]);
-     // }
     }
 } 

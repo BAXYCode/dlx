@@ -1,8 +1,7 @@
 use crate::solver::Solver;
 use crate::sudoku_gen::SudokuGenerator;
 use crate::{cells::Cell, cells::CERO, matrix::Matrix};
-use std::time::{Instant, SystemTime};
-use radsort::sort_by_key;
+use std::time:: SystemTime;
 const HARD_CODED_MAX: usize = 100_000;
 pub struct Sudoku {
     pub(crate) sudoku: String,
@@ -11,6 +10,9 @@ pub struct Sudoku {
     pub(crate) recursion_depth: usize,
     pub(crate) wanted_ans_num: WantedSolutions,
 }
+
+#[derive(Debug)]
+pub struct  RowConditions(pub(crate) usize,pub(crate) usize, pub(crate) usize, pub(crate) usize);
 
 pub(crate) enum WantedSolutions {
     MaxWanted(usize),
@@ -28,7 +30,7 @@ impl Sudoku {
         }
     }
 
-    fn small_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
+    fn small_sudoku(&self, sparse: &mut Vec<RowConditions>) {
         let n = self.dimension * self.dimension;
         for (ind, mut val) in self.sudoku.char_indices() {
             if val == '.' {
@@ -42,18 +44,18 @@ impl Sudoku {
                     sparse.push(individual);
                 }
             } else {
-                let temp = self.build_one_row(ind, val_dig as usize);
+                    
+                    let row = self.build_one_row(ind, val_dig as usize);
 
-                let tempp: Vec<usize> = temp.into_iter().flatten().collect();
-                sparse.push(tempp);
+                sparse.push(row);
             }
         }
     }
-    fn big_sudoku(&self, sparse: &mut Vec<Vec<usize>>) {
+    fn big_sudoku(&self, sparse: &mut Vec<RowConditions>) {
         let n = self.dimension * self.dimension;
         let sudoku_split: Vec<&str> = self.sudoku.split(".").collect();
-        let mut sudoku_vec = Vec::with_capacity(n*n);
-        for x in sudoku_split{
+        let mut sudoku_vec = Vec::with_capacity(n * n);
+        for x in sudoku_split {
             sudoku_vec.push(x.parse::<usize>().unwrap());
         }
         for (ind, val) in sudoku_vec.iter().enumerate() {
@@ -64,10 +66,7 @@ impl Sudoku {
                 }
             } else {
                 let row = self.build_one_row(ind, *val);
-                let mut temp: Vec<usize> = Vec::with_capacity(row[0].len() * 4);
-                let flat_row = row.into_iter().flatten();
-                temp.extend(flat_row);
-                sparse.push(temp)
+                sparse.push(row)
             }
         }
     }
@@ -75,8 +74,8 @@ impl Sudoku {
         self.solutions = 0usize;
         self.sudoku = sudoku.to_owned();
     }
-    fn sudoku_to_sparse(&self) -> Vec<Vec<usize>> {
-        let mut sparse: Vec<Vec<usize>> = Vec::new();
+    fn sudoku_to_sparse(&self) -> Vec<RowConditions> {
+        let mut sparse: Vec<RowConditions> = Vec::new();
         if self.dimension < 4 {
             self.small_sudoku(&mut sparse);
         } else {
@@ -97,11 +96,10 @@ impl Sudoku {
         dim * (constraint_ind) + val
     }
 
-    fn build_one_row(&self, ind: usize, val: usize) -> Vec<Vec<usize>> {
+    fn build_one_row(&self, ind: usize, val: usize) -> RowConditions{
         //total number of cells in the sudoku puzzle
         let dimension = self.dimension * self.dimension * self.dimension * self.dimension;
         let n = self.dimension * self.dimension;
-        let mut completed_row = Vec::new();
         //these are the "constraint indices" i.e. in which block of 1-9
         //the 1 should be placed to represent respecting a constraint
         //(let's say we have the first block of 81 columns represent the row
@@ -114,39 +112,21 @@ impl Sudoku {
 
         //this is the index of the 1 in inside of the specific block inside
         //the constraint.
-        let row_index = self.get_index(n, val, row) - 1;
-        let col_index = self.get_index(n, val, col) - 1;
-        let box_index = self.get_index(n, val, box_con) - 1;
+        let row_index = (self.get_index(n, val, row) - 1)+dimension;
+        let col_index = (self.get_index(n, val, col) - 1)+ 2*dimension;
+        let box_index = (self.get_index(n, val, box_con) - 1) + 3*dimension;
         let digit_index = ind;
         //-----------------------------------------------------------------------------
-        let mut row_vec = Vec::with_capacity(dimension);
-        let mut col_vec = Vec::with_capacity(dimension);
-        let mut box_vec = Vec::with_capacity(dimension);
-        let mut digit_vec = Vec::with_capacity(dimension);
-
-        for i in 0..dimension {
-            self.push_to_constraint_vec(&mut digit_vec, &i, &(&digit_index));
-            self.push_to_constraint_vec(&mut row_vec, &i, &(&row_index));
-            self.push_to_constraint_vec(&mut col_vec, &i, &(&col_index));
-            self.push_to_constraint_vec(&mut box_vec, &i, &(&box_index));
-        }
-
-        completed_row.push(digit_vec);
-        completed_row.push(row_vec);
-        completed_row.push(col_vec);
-        completed_row.push(box_vec);
-        completed_row
+        
+        RowConditions(digit_index, row_index, col_index, box_index)
     }
 
-    fn build_n_rows(&self, dim: usize, cell_num: usize) -> Vec<Vec<usize>> {
+    fn build_n_rows(&self, dim: usize, cell_num: usize) -> Vec<RowConditions> {
         let mut result = Vec::new();
 
         for i in 1..=dim {
             let row = self.build_one_row(cell_num, i);
-            let mut temp: Vec<usize> = Vec::with_capacity(row[0].len() * 4);
-            let flat_row = row.into_iter().flatten();
-            temp.extend(flat_row);
-            result.push(temp);
+            result.push(row);
         }
         result
     }
@@ -168,14 +148,17 @@ impl Sudoku {
         let mut sudokus: Vec<String> = Vec::new();
         for answer in answers {
             let mut sudoku = String::new();
-            let mut decoded: Vec<(usize, usize)> = answer
-                .into_iter()
-                .map(|row| self.decoder(row))
-                .collect::<Vec<(usize, usize)>>();
+            let mut decoded: Vec<(usize, usize)> = Vec::with_capacity(length);
+
+            for cells in answer.into_iter() {
+                let decoded_cell = self.decoder(cells);
+                decoded.push(decoded_cell);
+            }
+
             radsort::sort_by_key(&mut decoded, |vals| vals.0);
-            for (i,x) in decoded.into_iter().enumerate(){
-                
-                sudoku.insert(i,char::from_digit(x.1 as u32,10).unwrap());
+
+            for (i, x) in decoded.into_iter().enumerate() {
+                sudoku.insert(i, char::from_digit(x.1 as u32, 10).unwrap());
             }
             sudokus.push(sudoku);
         }
@@ -210,9 +193,9 @@ impl Solver for Sudoku {
         let cols = possibility * possibility * 4;
         let mut matrix = Matrix::new(rows, cols);
 
-        for x in sparse.iter() {
+        for x in sparse.into_iter() {
             // println!("this is row#{}: {:?}",i, x);
-            matrix.add_row(&x);
+            matrix.add_row(x);
         }
         if let Some(val) = answers_wanted {
             self.wanted_ans_num = WantedSolutions::MaxWanted(val);

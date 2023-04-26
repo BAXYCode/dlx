@@ -1,10 +1,9 @@
 use std::fs::File;
-use std::io::{BufReader,Read};
+use std::io::Read;
 use std::path::Path;
 use std::thread::{JoinHandle, self};
 use crate::solver::Solver;
-use crate::sudoku::{Sudoku,WantedSolutions};
-use std::sync::{Arc,Mutex};
+use crate::sudoku::Sudoku;
 pub(crate)  struct  SudokuTester{
     pub response: Vec<String>
 }
@@ -27,8 +26,8 @@ impl SudokuTester {
         let path = Path::new("data.txt");
         let mut file = File::open(path).unwrap();
         let mut  bufreader = String::new();
-        let contents = file.read_to_string(&mut bufreader);
-        if let Ok(contents) = contents{
+        let ok = file.read_to_string(&mut bufreader);
+        if let Ok(_ok) = ok{
             return bufreader;}
         "None".to_owned()
             }
@@ -37,7 +36,6 @@ impl SudokuTester {
         let mut results: Vec<String> = Vec::new();
         let treated = self.treat_file();
         let unsolved = self.get_sudoku(&treated);
-        let total = unsolved.len() as f32;
         let mut handles: Vec<JoinHandle<_>> = Vec::with_capacity(1000); 
         for (i ,sud) in unsolved.into_iter().enumerate(){
             let mut sudoku = Sudoku::new(sud,3usize);

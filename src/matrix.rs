@@ -2,6 +2,7 @@ use rand::Rng;
 use crate::cells::Cell;
 use crate::cells::CERO;
 use crate::linked::Linked;
+use crate::sudoku::RowConditions;
 pub struct Matrix {
     pub(crate) horizontal: Linked,
     pub(crate) vertical: Linked,
@@ -55,13 +56,23 @@ impl Matrix {
 
         cell
     }
-    pub fn add_row(&mut self, row: &Vec<usize>) {
+    pub fn add_row(&mut self, row: RowConditions) {
+        let mut conditions = Vec::with_capacity(4);
+        conditions.push(row.0);
+        conditions.push(row.1);
+        conditions.push(row.2);
+        conditions.push(row.3);
+
+
         let mut col = CERO;
 
         let mut prev = None;
-        for val in row {
-            col = self.horizontal[col].next;
-            if *val == 1usize {
+
+        for val in conditions {
+
+            while val+1 != col.0  {
+               col = self.horizontal[col].next;
+            }
                 self.sizes[col] += 1;
                 let new_cell = self.allocate_cell(col);
                 //fetch column and add new cell as cols new previous cell
@@ -70,7 +81,7 @@ impl Matrix {
                     self.horizontal.insert(prev, new_cell);
                 }
                 prev = Some(new_cell);
-            }
+            
         }
     }
     pub(crate) fn cover(&mut self, cell: Cell) {
