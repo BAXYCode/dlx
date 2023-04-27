@@ -52,7 +52,7 @@ impl Matrix {
         let cell = self.allocate_column();
 
         // add column in last position
-        self.horizontal.insert(self.horizontal[CERO].prev, cell);
+        unsafe{self.horizontal.insert(self.horizontal.links.get_unchecked(CERO.0).prev, cell);}
 
         cell
     }
@@ -76,7 +76,7 @@ impl Matrix {
                 self.sizes[col] += 1;
                 let new_cell = self.allocate_cell(col);
                 //fetch column and add new cell as cols new previous cell
-                self.vertical.insert(self.vertical[col].prev, new_cell);
+                unsafe{self.vertical.insert(self.vertical.links.get_unchecked(col.0).prev, new_cell);}
                 if let Some(prev) = prev {
                     self.horizontal.insert(prev, new_cell);
                 }
@@ -98,7 +98,7 @@ impl Matrix {
             let mut curr = self.horizontal.cursor(c_axis_cell);
             while let Some(r_axis_cell) = curr.next(&self.horizontal) {
                 self.vertical.remove(r_axis_cell);
-                self.sizes[self.access[r_axis_cell]] -= 1;
+                unsafe{self.sizes[*(self.access.get_unchecked(r_axis_cell.0))] -= 1;}
                 //self.total_covered+=1;
                 // println!("size for column {:?} reduced to : {}",self.access[r_axis_cell],self.sizes[self.access[r_axis_cell]]);
             }
@@ -119,7 +119,7 @@ impl Matrix {
             let mut r_axis_cell = self.horizontal.cursor(c_axis_cell);
             while let Some(current_cell) = r_axis_cell.prev(&self.horizontal) {
                 //self.total_uncovered +=1;
-                self.sizes[self.access[current_cell]] += 1;
+                unsafe{self.sizes[*(self.access.get_unchecked(current_cell.0))] += 1;}
                 self.vertical.add_back(current_cell);
             }
         } //self.total_uncovered+=1;
@@ -129,7 +129,8 @@ impl Matrix {
     pub(crate) fn uncover_all_row(&mut self, cell: Cell) {
         let mut cursor = self.vertical.cursor(cell);
         while let Some(cell) = cursor.prev(&self.horizontal) {
-            let header = self.access[cell];
+            let header:Cell;
+            unsafe{ header = *(self.access.get_unchecked(cell.0));}
             self.uncover(header)
         }
     }
@@ -138,9 +139,9 @@ impl Matrix {
         let mut cols_ind = Vec::new();
 
         let mut curr = self.horizontal.cursor(cell);
-        cols_ind.push(self.access[cell].0);
+        unsafe{cols_ind.push(self.access.get_unchecked(cell.0).0);}
         while let Some(current) = curr.next(&self.horizontal) {
-            cols_ind.push(self.access[current].0);
+            unsafe{ cols_ind.push(self.access.get_unchecked(current.0).0);}
         }
         cols_ind.sort();
         cols_ind
@@ -151,8 +152,8 @@ impl Matrix {
         let mut changed:bool = false;
         let mut current_smallest_size = self.sizes.clone().into_iter().max().unwrap()+1;
         while let Some(node) = cursor.next(&self.horizontal) {
-            if self.sizes[self.access[node]] < current_smallest_size {
-                current_smallest_size = self.sizes[self.access[node]];
+           if  unsafe{self.sizes[*(self.access.get_unchecked(node.0))]} < current_smallest_size {
+              unsafe{current_smallest_size = self.sizes[*(self.access.get_unchecked(node.0))];}
                 smallest_column = node;
                 if current_smallest_size == 1 {
                     return smallest_column;
